@@ -6,6 +6,7 @@
 #
 
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/uclibc++.mk
 
 PKG_NAME:=mysql
 PKG_VERSION:=5.1.53
@@ -29,7 +30,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/libmysqlclient/Default
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+uclibcxx +zlib
+  DEPENDS:=$(CXX_DEPENDS) +zlib
   TITLE:=MySQL client library
   URL:=http://dev.mysql.com/
 endef
@@ -112,7 +113,7 @@ endef
 TARGET_CFLAGS += $(FPIC)
 
 define Build/Compile
-	$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
+	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
 		SUBDIRS="include" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all
@@ -120,13 +121,13 @@ define Build/Compile
 		SUBDIRS="include" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		install
-	$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)/libmysql" \
+	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)/libmysql" \
 		CC="g++" \
 		CFLAGS="$(HOST_CFLAGS)" \
 		CPPFLAGS="$(HOST_CFLAGS)" \
 		LDFLAGS="$(HOST_LDFLAGS)" \
 		conf_to_src
-	$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
+	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
 		SUBDIRS="libmysql" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all
@@ -134,7 +135,7 @@ define Build/Compile
 		SUBDIRS="libmysql" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		install
-	$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
+	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
 		SUBDIRS="libmysql_r" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all
@@ -147,7 +148,7 @@ define Build/Compile
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		bin_SCRIPTS="mysql_config" \
 		install
-	$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
+	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all
 	$(MAKE) -C "$(PKG_BUILD_DIR)" \

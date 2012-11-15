@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=asterisk18
 PKG_VERSION:=1.8.10.1
-PKG_RELEASE:=1
+PKG_RELEASE:=4
 
 PKG_SOURCE:=asterisk-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://downloads.asterisk.org/pub/telephony/asterisk/releases/
@@ -25,7 +25,6 @@ define Package/asterisk18/Default
   SECTION:=net
   CATEGORY:=Network
   URL:=http://www.asterisk.org/
-  MAINTAINER:=Hans Zandbelt <hans.zandbelt@gmail.com>
 endef
 
 define Package/asterisk18/Default/description
@@ -235,6 +234,17 @@ $(call Package/asterisk18/Default/description)
  This package provides the channel chan_lantiq support to Asterisk.
 endef
 
+define Package/asterisk18-odbc
+$(call Package/asterisk18/Default)
+  TITLE:=ODBC support
+  DEPENDS:= asterisk18 +libpthread +libc +unixodbc
+endef
+
+define Package/asterisk18-odbc/description
+$(call Package/asterisk18/Default/description)
+ This package provides ODBC support for Asterisk.
+endef
+
 ifneq ($(SDK)$(CONFIG_PACKAGE_asterisk18-app-meetme),)
   CONFIGURE_ARGS+= \
 	--with-dahdi="$(STAGING_DIR)/usr"
@@ -309,7 +319,6 @@ CONFIGURE_ARGS+= \
 	--with-ncurses="$(STAGING_DIR)/usr" \
 	--without-netsnmp \
 	--without-newt \
-	--without-odbc \
 	--without-ogg \
 	--without-osptk \
 	--with-popt="$(STAGING_DIR)/usr" \
@@ -595,6 +604,13 @@ define Package/asterisk18-res-srtp/install
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/lib/asterisk/modules/res_srtp.so $(1)/usr/lib/asterisk/modules/
 endef
 
+define Package/asterisk18-odbc/install
+	$(INSTALL_DIR) $(1)/etc/asterisk
+	$(CP) $(PKG_INSTALL_DIR)/etc/asterisk/*odbc*.conf $(1)/etc/asterisk/
+	$(INSTALL_DIR) $(1)/usr/lib/asterisk/modules
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/asterisk/modules/*odbc*.so $(1)/usr/lib/asterisk/modules/
+endef
+
 define Buildasterisk18ModuleTemplate
 
   define Package/asterisk18-$(subst _,-,$(1))
@@ -625,6 +641,7 @@ $(eval $(call BuildPackage,asterisk18-cdr))
 $(eval $(call BuildPackage,asterisk18-res-musiconhold))
 $(eval $(call BuildPackage,asterisk18-chan-gtalk))
 $(eval $(call BuildPackage,asterisk18-chan-mobile))
+$(eval $(call BuildPackage,asterisk18-odbc))
 $(eval $(call BuildPackage,asterisk18-res-fax))
 $(eval $(call BuildPackage,asterisk18-res-fax-spandsp))
 $(eval $(call BuildPackage,asterisk18-res-timing-timerfd))

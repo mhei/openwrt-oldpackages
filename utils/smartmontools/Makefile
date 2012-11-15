@@ -1,11 +1,12 @@
 #
-# Copyright (C) 2006-2011 OpenWrt.org
+# Copyright (C) 2006-2012 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/uclibc++.mk
 
 PKG_NAME:=smartmontools
 PKG_VERSION:=5.40
@@ -20,7 +21,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/smartmontools/Default
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=+uclibcxx
+  DEPENDS:=$(CXX_DEPENDS)
   TITLE:=S.M.A.R.T Monitoring
   URL:=http://smartmontools.sourceforge.net/
 endef

@@ -15,6 +15,9 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@GNU/gdbm
 PKG_MD5SUM:=59f6e4c4193cb875964ffbe8aa384b58
 
+PKG_LICENSE:=GPLv3
+PKG_LICENSE_FILES:=COPYING
+
 PKG_FIXUP:=autoreconf
 PKG_BUILD_PARALLEL:=0
 
@@ -34,7 +37,7 @@ CONFIGURE_ARGS += \
 	--enable-static \
 
 define Build/Compile
-	$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
+	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
 		BINOWN=`id -u` \
 		BINGRP=`id -g` \
 		DESTDIR="$(PKG_INSTALL_DIR)" \

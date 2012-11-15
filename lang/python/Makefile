@@ -9,11 +9,14 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python
 PKG_VERSION:=2.7.3
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=Python-$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:=http://www.python.org/ftp/python/$(PKG_VERSION)
 PKG_MD5SUM:=62c4c1699170078c469f79ddfed21bc0
+
+PKG_LICENSE:=PSF
+PKG_LICENSE_FILES:=LICENSE Modules/_ctypes/libffi_msvc/LICENSE Modules/_ctypes/darwin/LICENSE Modules/_ctypes/libffi/LICENSE Modules/_ctypes/libffi_osx/LICENSE Tools/pybench/LICENSE
 
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
@@ -463,9 +466,9 @@ define Host/Configure
 endef
 
 define Host/Compile
-	$(MAKE) $(HOST_JOBS) -C $(HOST_BUILD_DIR) \
+	+$(MAKE) $(HOST_JOBS) -C $(HOST_BUILD_DIR) \
 		python Parser/pgen
-	$(MAKE) $(HOST_JOBS) -C $(HOST_BUILD_DIR) \
+	+$(MAKE) $(HOST_JOBS) -C $(HOST_BUILD_DIR) \
 		HOSTPYTHON=$(HOST_BUILD_DIR)/python \
 		sharedmods
 endef
