@@ -40,6 +40,12 @@ prefetch(pos->next), pos != (head); \
 pos = rcu_dereference(pos->next))
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)
+#define SKB_PORTID(x) NETLINK_CB(x).portid
+#else
+#define SKB_PORTID(x) NETLINK_CB(x).pid
+#endif
+
 #define WPROBE_MIN_INTERVAL		100 /* minimum measurement interval in msecs */
 #define WPROBE_MAX_FILTER_SIZE	1024
 #define WPROBE_MAX_FRAME_SIZE	1900
@@ -441,36 +447,47 @@ wprobe_send_item_value(struct sk_buff *msg, struct netlink_callback *cb,
 	struct wprobe_value *val = dev->query_val;
 	u64 time = val[i].last - val[i].first;
 
-	hdr = genlmsg_put(msg, NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_seq,
+	hdr = genlmsg_put(msg, SKB_PORTID(cb->skb), cb->nlh->nlmsg_seq,
 			&wprobe_fam, NLM_F_MULTI, WPROBE_CMD_GET_INFO);
 
-	NLA_PUT_U32(msg, WPROBE_ATTR_ID, i);
-	NLA_PUT_U32(msg, WPROBE_ATTR_FLAGS, flags);
-	NLA_PUT_U8(msg, WPROBE_ATTR_TYPE, item[i].type);
-	NLA_PUT_U64(msg, WPROBE_ATTR_DURATION, time);
+	if (nla_put_u32(msg, WPROBE_ATTR_ID, i))
+		goto nla_put_failure;
+	if (nla_put_u32(msg, WPROBE_ATTR_FLAGS, flags))
+		goto nla_put_failure;
+	if (nla_put_u8(msg, WPROBE_ATTR_TYPE, item[i].type))
+		goto nla_put_failure;
+	if (nla_put_u64(msg, WPROBE_ATTR_DURATION, time))
+		goto nla_put_failure;
 
 	switch(item[i].type) {
 	case WPROBE_VAL_S8:
 	case WPROBE_VAL_U8:
-		NLA_PUT_U8(msg, item[i].type, val[i].U8);
+		if (nla_put_u8(msg, item[i].type, val[i].U8))
+			goto nla_put_failure;
 		break;
 	case WPROBE_VAL_S16:
 	case WPROBE_VAL_U16:
-		NLA_PUT_U16(msg, item[i].type, val[i].U16);
+		if (nla_put_u16(msg, item[i].type, val[i].U16))
+			goto nla_put_failure;
 		break;
 	case WPROBE_VAL_S32:
 	case WPROBE_VAL_U32:
-		NLA_PUT_U32(msg, item[i].type, val[i].U32);
+		if (nla_put_u32(msg, item[i].type, val[i].U32))
+			goto nla_put_failure;
 		break;
 	case WPROBE_VAL_S64:
 	case WPROBE_VAL_U64:
-		NLA_PUT_U64(msg, item[i].type, val[i].U64);
+		if (nla_put_u64(msg, item[i].type, val[i].U64))
+			goto nla_put_failure;
 		break;
 	case WPROBE_VAL_STRING:
-		if (val[i].STRING)
-			NLA_PUT_STRING(msg, item[i].type, val[i].STRING);
-		else
-			NLA_PUT_STRING(msg, item[i].type, "");
+		if (val[i].STRING) {
+			if (nla_put_string(msg, item[i].type, val[i].STRING))
+				goto nla_put_failure;
+		} else {
+			if (nla_put_string(msg, item[i].type, ""))
+				goto nla_put_failure;
+		}
 		/* bypass avg/stdev */
 		goto done;
 	default:
@@ -478,10 +495,14 @@ wprobe_send_item_value(struct sk_buff *msg, struct netlink_callback *cb,
 		goto done;
 	}
 	if (item[i].flags & WPROBE_F_KEEPSTAT) {
-		NLA_PUT_U64(msg, WPROBE_VAL_SUM, val[i].s);
-		NLA_PUT_U64(msg, WPROBE_VAL_SUM_SQ, val[i].ss);
-		NLA_PUT_U32(msg, WPROBE_VAL_SAMPLES, (u32) val[i].n);
-		NLA_PUT_MSECS(msg, WPROBE_VAL_SCALE_TIME, val[i].scale_timestamp);
+		if (nla_put_u64(msg, WPROBE_VAL_SUM, val[i].s))
+			goto nla_put_failure;
+		if (nla_put_u64(msg, WPROBE_VAL_SUM_SQ, val[i].ss))
+			goto nla_put_failure;
+		if (nla_put_u32(msg, WPROBE_VAL_SAMPLES, (u32) val[i].n))
+			goto nla_put_failure;
+		if (nla_put_msecs(msg, WPROBE_VAL_SCALE_TIME, val[i].scale_timestamp))
+			goto nla_put_failure;
 	}
 done:
 	genlmsg_end(msg, hdr);
@@ -499,15 +520,21 @@ wprobe_send_item_info(struct sk_buff *msg, struct netlink_callback *cb,
 {
 	struct genlmsghdr *hdr;
 
-	hdr = genlmsg_put(msg, NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_seq,
+	hdr = genlmsg_put(msg, SKB_PORTID(cb->skb), cb->nlh->nlmsg_seq,
 			&wprobe_fam, NLM_F_MULTI, WPROBE_CMD_GET_LIST);
 
-	if ((i == 0) && (dev->addr != NULL))
-		NLA_PUT(msg, WPROBE_ATTR_MAC, 6, dev->addr);
-	NLA_PUT_U32(msg, WPROBE_ATTR_ID, (u32) i);
-	NLA_PUT_STRING(msg, WPROBE_ATTR_NAME, item[i].name);
-	NLA_PUT_U8(msg, WPROBE_ATTR_TYPE, item[i].type);
-	NLA_PUT_U32(msg, WPROBE_ATTR_FLAGS, item[i].flags);
+	if ((i == 0) && (dev->addr != NULL)) {
+		if (nla_put(msg, WPROBE_ATTR_MAC, 6, dev->addr))
+			goto nla_put_failure;
+	}
+	if (nla_put_u32(msg, WPROBE_ATTR_ID, (u32) i))
+		goto nla_put_failure;
+	if (nla_put_string(msg, WPROBE_ATTR_NAME, item[i].name))
+		goto nla_put_failure;
+	if (nla_put_u8(msg, WPROBE_ATTR_TYPE, item[i].type))
+		goto nla_put_failure;
+	if (nla_put_u32(msg, WPROBE_ATTR_FLAGS, item[i].flags))
+		goto nla_put_failure;
 	genlmsg_end(msg, hdr);
 	return true;
 
@@ -536,21 +563,25 @@ wprobe_dump_filter_group(struct sk_buff *msg, struct wprobe_filter_group *fg, st
 	struct nlattr *group, *item;
 	int i;
 
-	hdr = genlmsg_put(msg, NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_seq,
+	hdr = genlmsg_put(msg, SKB_PORTID(cb->skb), cb->nlh->nlmsg_seq,
 			&wprobe_fam, NLM_F_MULTI, WPROBE_CMD_GET_FILTER);
 	if (!hdr)
 		return false;
 
-	NLA_PUT_STRING(msg, WPROBE_ATTR_NAME, fg->name);
+	if (nla_put_string(msg, WPROBE_ATTR_NAME, fg->name))
+		goto nla_put_failure;
 	group = nla_nest_start(msg, WPROBE_ATTR_FILTER_GROUP);
 	for (i = 0; i < fg->n_items; i++) {
 		struct wprobe_filter_item *fi = fg->items[i];
 		struct wprobe_filter_counter *fc = &fg->counters[i];
 
 		item = nla_nest_start(msg, WPROBE_ATTR_FILTER_GROUP);
-		NLA_PUT_STRING(msg, WPROBE_ATTR_NAME, fi->hdr.name);
-		NLA_PUT_U64(msg, WPROBE_ATTR_RXCOUNT, fc->rx);
-		NLA_PUT_U64(msg, WPROBE_ATTR_TXCOUNT, fc->tx);
+		if (nla_put_string(msg, WPROBE_ATTR_NAME, fi->hdr.name))
+			goto nla_put_failure;
+		if (nla_put_u64(msg, WPROBE_ATTR_RXCOUNT, fc->rx))
+			goto nla_put_failure;
+		if (nla_put_u64(msg, WPROBE_ATTR_TXCOUNT, fc->tx))
+			goto nla_put_failure;
 		nla_nest_end(msg, item);
 	}
 
@@ -614,12 +645,13 @@ wprobe_dump_link(struct sk_buff *msg, struct wprobe_link *l, struct netlink_call
 {
 	struct genlmsghdr *hdr;
 
-	hdr = genlmsg_put(msg, NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_seq,
+	hdr = genlmsg_put(msg, SKB_PORTID(cb->skb), cb->nlh->nlmsg_seq,
 			&wprobe_fam, NLM_F_MULTI, WPROBE_CMD_GET_LINKS);
 	if (!hdr)
 		return false;
 
-	NLA_PUT(msg, WPROBE_ATTR_MAC, 6, l->addr);
+	if (nla_put(msg, WPROBE_ATTR_MAC, 6, l->addr))
+		goto nla_put_failure;
 	genlmsg_end(msg, hdr);
 	return true;
 
