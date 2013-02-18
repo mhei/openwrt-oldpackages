@@ -15,7 +15,7 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.networkupstools.org/source/2.6/
 PKG_MD5SUM:=e6eac4fa04baff0d0a827d64efe81a7e
 
-PKG_BUILD_DEPENDS:=libusb libnetsnmp
+PKG_BUILD_DEPENDS:=libusb-compat libnetsnmp
 PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
 
@@ -139,7 +139,7 @@ define DriverPackage
     TITLE += ($(1) driver)
     DEPENDS += nut nut-server
     ifeq ($(1),$(filter $(1),$(USB_LIBUSB_DRIVERLIST)))
-      DEPENDS+=libusb
+      DEPENDS+=libusb-compat
     endif
     ifeq ($(1),$(filter $(1),$(SNMP_DRIVERLIST)))
       DEPENDS+=libnetsnmp

@@ -7,14 +7,16 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=elfutils
-PKG_VERSION:=0.152
-PKG_RELEASE:=2
+PKG_VERSION:=0.155
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://fedorahosted.org/releases/e/l/$(PKG_NAME)/$(PKG_VERSION)
-PKG_MD5SUM:=39739ed58a0fa1862eff8735f111fe5c
+PKG_MD5SUM:=163a5712b86f6bdfebdf233cc6e2192d
 
 PKG_INSTALL:=1
+
+PKG_BUILD_DEPENDS:=USE_UCLIBC:argp-standalone
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/nls.mk
@@ -22,7 +24,7 @@ include $(INCLUDE_DIR)/nls.mk
 define Package/elfutils/Default
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=$(INTL_DEPENDS) +USE_UCLIBC:argp-standalone
+  DEPENDS:=$(INTL_DEPENDS)
   TITLE:=ELF manipulation libraries
   URL:=https://fedorahosted.org/elfutils/
 endef
@@ -46,6 +48,9 @@ ifdef CONFIG_USE_UCLIBC
 CONFIGURE_VARS += \
 	LIBS="-largp"
 endif
+
+CONFIGURE_ARGS += \
+	--disable-werror
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include

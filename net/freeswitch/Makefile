@@ -11,7 +11,6 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=freeswitch
 PKG_DISTNAME:=$(PKG_NAME)_git
 PKG_VERSION:=1.3.13b
-PKG_RELEASE:=2
 
 
 #
@@ -19,11 +18,13 @@ PKG_RELEASE:=2
 #
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=git://git.$(PKG_NAME).org/$(PKG_NAME).git
-FS_DEFAULT_HEAD:=8e6460fed3d4182dd90d07c5e9a980c71d22acc9
+FS_DEFAULT_HEAD:=475c235df44abe956ccfff050ec04f1f4578e6c1
 FS_LATEST_HEAD:=$(shell git ls-remote $(PKG_SOURCE_URL) HEAD | cut -f1)
 PKG_SOURCE_VERSION:=$(if $(CONFIG_FS_SOFIA_WITH_PULL_CURRENT),$(FS_LATEST_HEAD),$(FS_DEFAULT_HEAD))
+PKG_SOURCE_VERSION_SHORT:=$(shell echo $(PKG_SOURCE_VERSION)|cut -b -7)
+PKG_RELEASE:=$(PKG_SOURCE_VERSION_SHORT)
 PKG_SOURCE_SUBDIR:=$(PKG_DISTNAME)
-PKG_SOURCE:=$(PKG_SOURCE_SUBDIR)-$(shell echo $(PKG_SOURCE_VERSION)|cut -b -7).tar.bz2
+PKG_SOURCE:=$(PKG_SOURCE_SUBDIR)-$(PKG_SOURCE_VERSION_SHORT).tar.bz2
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 
@@ -145,6 +146,7 @@ FS_MOD_AVAILABLE:= \
 	spy \
 	stress \
 	syslog \
+	timerfd \
 	tone-stream \
 	tts-commandline \
 	unimrcp \
@@ -160,13 +162,13 @@ FS_MOD_AVAILABLE:= \
 
 
 PKG_CONFIG_DEPENDS:= \
+	CONFIG_FS_SOFIA_WITH_BUILTIN_ZRTP \
 	CONFIG_FS_SOFIA_WITH_IPV6 \
 	CONFIG_FS_SOFIA_WITH_MYSQL \
 	CONFIG_FS_SOFIA_WITH_ODBC \
 	CONFIG_FS_SOFIA_WITH_OPT \
 	CONFIG_FS_SOFIA_WITH_PULL_CURRENT \
 	CONFIG_FS_SOFIA_WITH_SCTP \
-	CONFIG_FS_SOFIA_WITH_ZRTP_GIT \
 	$(patsubst %,CONFIG_PACKAGE_$(PKG_NAME)-mod-%,$(FS_MOD_AVAILABLE)) \
 
 
@@ -182,14 +184,14 @@ define Package/$(PKG_NAME)/Default
   CATEGORY:=Network
   SUBMENU:=Telephony
   URL:=http://www.$(PKG_NAME).org/
-  MAINTAINER:=Mazilo <OpenWRT@slickdeals.endjunk.com>
+  MAINTAINER:=Mazilo <openwrt.forum.mazilo@recursor.net>
 endef
 
 
 define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
-  TITLE:=FreeSWITCH open source telephony platform ($(shell echo $(FS_DEFAULT_HEAD)|cut -b -7))
-  DEPENDS:=+libcurl +libjpeg +libncurses +libpq +libpthread +librt +libstdcpp
+  TITLE:=FreeSWITCH open source telephony platform ($(PKG_SOURCE_VERSION_SHORT))
+  DEPENDS:=+libcurl +libiconv-full +libjpeg +libncurses +libpq +libpthread +librt +libstdcpp
   MENU:=1
 endef
 
@@ -205,14 +207,14 @@ define Package/$(PKG_NAME)/config
     config FS_SOFIA_WITH_PULL_CURRENT
     depends on DEVEL
     depends on PACKAGE_$(PKG_NAME)
-    bool "Pull the latest git HEAD - $(shell echo $(PKG_SOURCE_VERSION)|cut -b -7) (Press < Help > for more information)"
+    bool "Pull the latest git HEAD - $(PKG_SOURCE_VERSION_SHORT) (Press < Help > for more information)"
     default n
     help
 	This existing git HEAD ($(FS_DEFAULT_HEAD)) is probably outdated. 
 	Enable this option for the latest git HEAD ($(FS_LATEST_HEAD)). 
 	Enable this option ONLY if you know what you are doing. It may and/or may not be cleanly 
 	compiled and may require some intervension to create new patches. If you take this route
-	and come up with some patches, please contemplate to contribute to send in your patches.
+	and come up with some patches, please contemplate to contribute or send in your patches.
 
     config FS_SOFIA_WITH_IPV6
     depends on PACKAGE_$(PKG_NAME)
@@ -227,6 +229,13 @@ define Package/$(PKG_NAME)/config
     default y
     help
         Compile $(PKG_NAME) with optimization enabled.
+
+    config FS_SOFIA_WITH_BUILTIN_ZRTP
+    depends on PACKAGE_$(PKG_NAME)
+    bool "Compile with built-in ZRTP support"
+    default y
+    help
+        Compile $(PKG_NAME)-mod-sofia with ZRTP Support.
 endef
 
 
@@ -255,15 +264,6 @@ define Package/$(PKG_NAME)-mod-sofia/config
     default y
     help
         Compile $(PKG_NAME)-mod-sofia with SCTP support.
-
-    config FS_SOFIA_WITH_ZRTP_GIT
-    depends on PACKAGE_$(PKG_NAME)-mod-sofia
-    depends on PACKAGE_libzrtpcpp
-    bool "Compile with ZRTP support (Requires libzrtpcpp NOT YET AVAILABLE)"
-    default n
-    #select PACKAGE_libzrtpcpp
-    help
-        Compile $(PKG_NAME)-mod-sofia with ZRTP Support. Since libzrtpcpp package is not yet available on OpenWRT, $(PKG_NAME)-mod-sofia CAN NOT be compiled with ZRTP support.
 endef
 
 
@@ -363,17 +363,59 @@ $(call Package/$(PKG_NAME)/Default)
 endef
 
 
-define Package/$(PKG_NAME)-sounds-en
+define Package/$(PKG_NAME)-sounds-en-08KHz
 $(call Package/$(PKG_NAME)/Default)
-  TITLE:=FreeSWITCH english sounds
+  TITLE:=FreeSWITCH 8KHz english sounds
   DEPENDS:= $(PKG_NAME)
 endef
 
 
-define Package/$(PKG_NAME)-sounds-moh
+define Package/$(PKG_NAME)-sounds-en-16KHz
 $(call Package/$(PKG_NAME)/Default)
-  TITLE:=FreeSWITCH music-on-hold sounds
+  TITLE:=FreeSWITCH 16KHz english sounds
+  DEPENDS:= $(PKG_NAME) $(PKG_NAME)-sounds-en-08KHz
+endef
+
+
+define Package/$(PKG_NAME)-sounds-en-32KHz
+$(call Package/$(PKG_NAME)/Default)
+  TITLE:=FreeSWITCH 32KHz english sounds
+  DEPENDS:= $(PKG_NAME) $(PKG_NAME)-sounds-en-08KHz $(PKG_NAME)-sounds-en-16KHz
+endef
+
+
+define Package/$(PKG_NAME)-sounds-en-48KHz
+$(call Package/$(PKG_NAME)/Default)
+  TITLE:=FreeSWITCH 48KHz english sounds
+  DEPENDS:= $(PKG_NAME) $(PKG_NAME)-sounds-en-08KHz $(PKG_NAME)-sounds-en-16KHz $(PKG_NAME)-sounds-en-32KHz
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-08KHz
+$(call Package/$(PKG_NAME)/Default)
+  TITLE:=FreeSWITCH 8KHz music-on-hold sounds
   DEPENDS:= $(PKG_NAME)
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-16KHz
+$(call Package/$(PKG_NAME)/Default)
+  TITLE:=FreeSWITCH 16KHz music-on-hold sounds
+  DEPENDS:= $(PKG_NAME) $(PKG_NAME)-sounds-moh-08KHz
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-32KHz
+$(call Package/$(PKG_NAME)/Default)
+  TITLE:=FreeSWITCH 32KHz music-on-hold sounds
+  DEPENDS:= $(PKG_NAME) $(PKG_NAME)-sounds-moh-08KHz $(PKG_NAME)-sounds-moh-16KHz
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-48KHz
+$(call Package/$(PKG_NAME)/Default)
+  TITLE:=FreeSWITCH 48KHz music-on-hold sounds
+  DEPENDS:= $(PKG_NAME) $(PKG_NAME)-sounds-moh-08KHz $(PKG_NAME)-sounds-moh-16KHz $(PKG_NAME)-sounds-moh-32KHz
 endef
 
 
@@ -425,15 +467,51 @@ ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-mod-opus),)
 endif
 
 
-ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-en),)
- $(eval $(call Download/files,sounds-en,$(PKG_NAME)-sounds-en-us-callie-8000-1.0.22.tar.gz,cff509d878708ce5e6e7fedac7f683ef,vanilla,,,,))
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-en-08KHz),)
+ $(eval $(call Download/files,sounds-en-08KHz,$(PKG_NAME)-sounds-en-us-callie-8000-1.0.24.tar.gz,6c0a8ec292e444dff10b652644f4fc54,,,))
 	MAKE_INSTALL_TARGETS+= sounds-install
 endif
 
 
-ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-moh),)
- $(eval $(call Download/files,sounds-moh,$(PKG_NAME)-sounds-music-8000-1.0.8.tar.gz,f63ef3cc3507af079ae5c7b8b8a01e42,vanilla,,,,))
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-en-16KHz),)
+ $(eval $(call Download/files,sounds-en-16KHz,$(PKG_NAME)-sounds-en-us-callie-16000-1.0.24.tar.gz,e9b5c1cdd393660d0cdf7de6b7e03c45,,,))
+	MAKE_INSTALL_TARGETS+= hd-sounds-install
+endif
+
+
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-en-32KHz),)
+ $(eval $(call Download/files,sounds-en-32KHz,$(PKG_NAME)-sounds-en-us-callie-32000-1.0.24.tar.gz,fa110675de07ca5f6d85646f3093b0ce,,,))
+	MAKE_INSTALL_TARGETS+= uhd-sounds-install
+endif
+
+
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-en-48KHz),)
+ $(eval $(call Download/files,sounds-en-48KHz,$(PKG_NAME)-sounds-en-us-callie-48000-1.0.24.tar.gz,813ea6eeae5545bb6e11664189691f8b,,,))
+	MAKE_INSTALL_TARGETS+= cd-sounds-install
+endif
+
+
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-moh-08KHz),)
+ $(eval $(call Download/files,sounds-moh-08KHz,$(PKG_NAME)-sounds-music-8000-1.0.8.tar.gz,f63ef3cc3507af079ae5c7b8b8a01e42,,,))
 	MAKE_INSTALL_TARGETS+= moh-install
+endif
+
+
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-moh-16KHz),)
+ $(eval $(call Download/files,sounds-moh-16KHz,$(PKG_NAME)-sounds-music-16000-1.0.8.tar.gz,7fd0ca9a9e3878783baa39b8187743bf,,,))
+	MAKE_INSTALL_TARGETS+= hd-moh-install
+endif
+
+
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-moh-32KHz),)
+ $(eval $(call Download/files,sounds-moh-32KHz,$(PKG_NAME)-sounds-music-32000-1.0.8.tar.gz,7e03932ea81b8d0bf6d686f838b060b4,,,))
+	MAKE_INSTALL_TARGETS+= uhd-moh-install
+endif
+
+
+ifneq ($(CONFIG_PACKAGE_$(PKG_NAME)-sounds-moh-48KHz),)
+ $(eval $(call Download/files,sounds-moh-48KHz,$(PKG_NAME)-sounds-music-48000-1.0.8.tar.gz,d06cd2a80379f224affab21f5180e4c6,,,))
+	MAKE_INSTALL_TARGETS+= cd-moh-install
 endif
 
 
@@ -475,7 +553,8 @@ CONFIGURE_ARGS+= \
 	$(if ($(CONFIG_PACKAGE_$(PKG_NAME)-mod-curl)|$(CONFIG_PACKAGE_$(PKG_NAME)-mod-xml-cdr)|$(CONFIG_PACKAGE_$(PKG_NAME)-mod-xml-curl)),--with-libcurl="$(STAGING_DIR)/usr",--without-libcurl) \
 	$(if $(CONFIG_PACKAGE_$(PKG_NAME)-mod-java),--with-java="$(STAGING_DIR)/usr",--without-java) \
 	$(call autoconf_bool,CONFIG_PACKAGE_$(PKG_NAME)-mod-spandsp,builtin-tiff) \
-	$(call autoconf_bool,CONFIG_FS_SOFIA_WITH_ZRTP_GIT,zrtp) \
+	$(call autoconf_bool,CONFIG_PACKAGE_$(PKG_NAME)-mod-timerfd,timerfd-wrapper) \
+	$(call autoconf_bool,CONFIG_FS_SOFIA_WITH_BUILTIN_ZRTP,zrtp) \
 	$(call autoconf_bool,CONFIG_FS_SOFIA_WITH_ODBC,core-odbc-support) \
 	$(if $(CONFIG_FS_SOFIA_WITH_ODBC),--with-odbc="$(STAGING_DIR)/usr") \
 	$(if $(CONFIG_FS_SOFIA_WITH_ODBC),--with-odbc-lib="$(STAGING_DIR)/usr/lib") \
@@ -499,6 +578,8 @@ CONFIGURE_VARS+= \
 	LDFLAGS_FOR_BUILD="${HOST_LDFLAGS}" \
 	CC="$(TOOLCHAIN_DIR)/bin/${TARGET_CC}" \
 	CXX="$(TOOLCHAIN_DIR)/bin/${TARGET_CXX}" \
+	AR="$(TOOLCHAIN_DIR)/bin/$(TARGET_CROSS)ar" \
+	RANLIB="$(TOOLCHAIN_DIR)/bin/$(TARGET_CROSS)ranlib" \
 	CFLAGS="${FS_TARGET_CPPFLAGS} ${FS_TARGET_CFLAGS}" \
 	CXXFLAGS="${FS_TARGET_CPPFLAGS} ${FS_TARGET_CXXFLAGS}" \
 	CPPFLAGS="${FS_TARGET_CPPFLAGS}" \
@@ -533,8 +614,14 @@ define Build/Prepare
 	$(call Prepare/flite)
 	$(call Prepare/json-cdr)
 	$(call Prepare/opus)
-	$(call Prepare/sounds-en)
-	$(call Prepare/sounds-moh)
+	$(call Prepare/sounds-en-08KHz)
+	$(call Prepare/sounds-en-16KHz)
+	$(call Prepare/sounds-en-32KHz)
+	$(call Prepare/sounds-en-48KHz)
+	$(call Prepare/sounds-moh-08KHz)
+	$(call Prepare/sounds-moh-16KHz)
+	$(call Prepare/sounds-moh-32KHz)
+	$(call Prepare/sounds-moh-48KHz)
 endef
 
 
@@ -609,7 +696,7 @@ endef
 
 define Package/$(PKG_NAME)-config-upstream-defaults/install
 	$(INSTALL_DIR) $(1)/etc/$(PKG_NAME)
-	$(CP) $(PKG_INSTALL_DIR)/etc/$(PKG_NAME)/* $(1)/etc/$(PKG_NAME)/
+	$(CP) $(PKG_INSTALL_DIR)/etc/$(PKG_NAME) $(1)/etc
 endef
 
 
@@ -624,18 +711,63 @@ endef
 
 
 define Package/$(PKG_NAME)-config-minimal/install
-	$(INSTALL_DIR) $(1)/etc/$(PKG_NAME)
-	$(CP) ./files/etc.minimal/* $(1)/etc/$(PKG_NAME)/
+	$(INSTALL_DIR) $(1)/etc/$(PKG_NAME)/autoload_configs
+
+	#
+	# Copying dialplan directory jingle_profiles sip_profiles $(PKG_NAME).xml fur_elise.ttml mime.types tetris.ttml tones.conf vars.xml
+	#
+	$(foreach ff,dialplan directory jingle_profiles sip_profiles $(PKG_NAME).xml fur_elise.ttml mime.types tetris.ttml tones.conf vars.xml,$(if ${PKG_BUILD_DIR}/conf/vanilla/$(ff),$(CP) ${PKG_BUILD_DIR}/conf/vanilla/$(ff) $(1)/etc/$(PKG_NAME);))
+
+	#
+	# Copying acl ivr modules post_load_modules switch timezones
+	#
+	$(foreach ff,acl ivr modules post_load_modules switch timezones,$(if ${PKG_BUILD_DIR}/conf/vanilla/autoload_configs/$(ff).conf.xml,$(CP) ${PKG_BUILD_DIR}/conf/vanilla/autoload_configs/$(ff).conf.xml $(1)/etc/$(PKG_NAME)/autoload_configs;))
 endef
 
 
-define Package/$(PKG_NAME)-sounds-en/install
+define Package/$(PKG_NAME)-sounds-en-08KHz/install
 	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
 	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/en $(1)/usr/share/$(PKG_NAME)/sounds/
 endef
 
 
-define Package/$(PKG_NAME)-sounds-moh/install
+define Package/$(PKG_NAME)-sounds-en-16KHz/install
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
+	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/en $(1)/usr/share/$(PKG_NAME)/sounds/
+endef
+
+
+define Package/$(PKG_NAME)-sounds-en-32KHz/install
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
+	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/en $(1)/usr/share/$(PKG_NAME)/sounds/
+endef
+
+
+define Package/$(PKG_NAME)-sounds-en-48KHz/install
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
+	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/en $(1)/usr/share/$(PKG_NAME)/sounds/
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-08KHz/install
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
+	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/music $(1)/usr/share/$(PKG_NAME)/sounds/
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-16KHz/install
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
+	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/music $(1)/usr/share/$(PKG_NAME)/sounds/
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-32KHz/install
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
+	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/music $(1)/usr/share/$(PKG_NAME)/sounds/
+endef
+
+
+define Package/$(PKG_NAME)-sounds-moh-48KHz/install
 	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)/sounds
 	$(CP) $(PKG_INSTALL_DIR)/usr/share/$(PKG_NAME)/sounds/music $(1)/usr/share/$(PKG_NAME)/sounds/
 endef
@@ -708,18 +840,34 @@ define BuildPlugin
 	done
 
 	#
-	# mod_$(subst -,_,$(1)) XML configuration files $(3)
+	# 1. mod_$(subst -,_,$(1)) XML configuration files from: $$$$(patsubst ${PKG_BUILD_DIR}/%,%,$$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/conf/$(3)/autoload_configs/$(subst -,_,$(1)).conf.xml)))
 	#
-	$(and "$(3)" == "vanilla" ],$(firstword $(wildcard ${PKG_BUILD_DIR}/conf/$(3)/autoload_configs/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $(firstword $(wildcard ${PKG_BUILD_DIR}/conf/$(3)/autoload_configs/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
-	$(and !$(3),$(firstword $(wildcard ${PKG_BUILD_DIR}/src/mod/*/mod_$(subst -,_,$(1))/conf/autoload_configs/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $(firstword $(wildcard ${PKG_BUILD_DIR}/src/mod/*/mod_$(subst -,_,$(1))/conf/autoload_configs/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
+	$$$$(if $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/conf/$(3)/autoload_configs/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/conf/$(3)/autoload_configs/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
 
 	#
-	# Additional configuration files for mod_YAML (vanilla)
+	# 2. mod_$(subst -,_,$(1)) XML configuration files from: $$$$(patsubst ${PKG_BUILD_DIR}/%,%,$$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/$(3)/$(1)/*/$(subst -,_,$(1)).conf.xml)))
 	#
-	if [ "$(1)" == "yaml" ] && [ -d ${PKG_BUILD_DIR}/conf/$(3)/yaml ]; then \
-		[ -d  $$(1)/etc/$(PKG_NAME)/yaml ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/yaml; \
-		$(CP) $(wildcard ${PKG_BUILD_DIR}/conf/$(3)/yaml/*) $$(1)/etc/$(PKG_NAME)/yaml; \
-	fi
+	$$$$(if $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/$(3)/$(1)/*/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/$(3)/$(1)/*/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
+
+	#
+	# 3. mod_$(subst -,_,$(1)) XML configuration files from: $$$$(patsubst ${PKG_BUILD_DIR}/%,%,$$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/conf/autoload_configs/$(subst -,_,$(1)).conf.xml)))
+	#
+	$$$$(if $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/conf/autoload_configs/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/conf/autoload_configs/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
+
+	#
+	# 4. mod_$(subst -,_,$(1)) XML configuration files from: $$$$(patsubst ${PKG_BUILD_DIR}/%,%,$$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/conf*/$(subst -,_,$(1)).conf.xml)))
+	#
+	$$$$(if $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/conf*/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/conf*/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
+
+	#
+	# 5. mod_$(subst -,_,$(1)) XML configuration files from: $$$$(patsubst ${PKG_BUILD_DIR}/%,%,$$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/$(subst -,_,$(1)).conf.xml)))
+	#
+	$$$$(if $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/$(subst -,_,$(1)).conf.xml)),[ -d $$(1)/etc/$(PKG_NAME)/autoload_configs ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/autoload_configs;$(CP) $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/src/$(3)/*/mod_$(subst -,_,$(1))/$(subst -,_,$(1)).conf.xml)) $$(1)/etc/$(PKG_NAME)/autoload_configs)
+
+	#
+	# 6. Additional configuration files for mod_$(subst -,_,$(1)) from: $$$$(patsubst ${PKG_BUILD_DIR}/%,%,$$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/conf/$(3)/$(1)/*.$(1))))
+	#
+	$$$$(if $$$$(firstword $$$$(wildcard ${PKG_BUILD_DIR}/conf/$(3)/$(1)/*.$(1))),[ -d $$(1)/etc/$(PKG_NAME)/$(1) ] || $(INSTALL_DIR) $$(1)/etc/$(PKG_NAME)/$(1);$(CP) ${PKG_BUILD_DIR}/conf/$(3)/$(1) $$(1)/etc/$(PKG_NAME))
   endef
 
   define Package/$(PKG_NAME)-mod-$(1)/postinst
@@ -739,8 +887,14 @@ endef
 $(eval $(call BuildPackage,$(PKG_NAME)))
 $(eval $(call BuildPackage,$(PKG_NAME)-collection-upstream-defaults))
 $(eval $(call BuildPackage,$(PKG_NAME)-collection-minimal))
-$(eval $(call BuildPackage,$(PKG_NAME)-sounds-en))
-$(eval $(call BuildPackage,$(PKG_NAME)-sounds-moh))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-en-08KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-en-16KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-en-32KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-en-48KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-moh-08KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-moh-16KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-moh-32KHz))
+$(eval $(call BuildPackage,$(PKG_NAME)-sounds-moh-48KHz))
 $(eval $(call BuildPackage,$(PKG_NAME)-tools))
 $(eval $(call BuildPackage,$(PKG_NAME)-example-config))
 $(eval $(call BuildPackage,$(PKG_NAME)-config-upstream-defaults))
@@ -764,12 +918,12 @@ $(eval $(call BuildPlugin,avmd,Advanced Voice Mail Detection,vanilla,,,,))
 $(eval $(call BuildPlugin,blacklist,Blacklist,vanilla,,,,))
 $(eval $(call BuildPlugin,bv,BroadVoice16 and BroadVoice32 Audio Codec,vanilla,,,,))
 $(eval $(call BuildPlugin,callcenter,Call Center,vanilla,,,,))
-$(eval $(call BuildPlugin,cdr-csv,CSV-CDR Handler,,,,,))
-$(eval $(call BuildPlugin,cdr-pg-csv,Postgress CDR Handler,vanilla,,,,+coreutils +libpq +postresql))
+$(eval $(call BuildPlugin,cdr-csv,CSV-CDR Handler,mod,,,,)) # ~/conf
+$(eval $(call BuildPlugin,cdr-pg-csv,Postgress CDR Handler,vanilla,,,,+coreutils +libpq))
 $(eval $(call BuildPlugin,cdr-sqlite,SQLite3 CDR Handler,vanilla,,,,+libsqlite3))
 $(eval $(call BuildPlugin,celt,CELT Ultra-Low Delay Codec,vanilla,,,,+libogg))
 $(eval $(call BuildPlugin,cepstral,Cepstral Interface,vanilla,,,,@BROKEN)) # needs <swift.h>
-$(eval $(call BuildPlugin,cidlookup,Data Query For CID->NAME Services,,,,,+libcurl))
+$(eval $(call BuildPlugin,cidlookup,Data Query For CID->NAME Services,mod,,,,+libcurl)) # ~/conf
 $(eval $(call BuildPlugin,cluechoo,Framework Demo,vanilla,,,,))
 $(eval $(call BuildPlugin,codec2,CoDec 2,,,,,))
 $(eval $(call BuildPlugin,commands,API Commands,vanilla,,,,))
@@ -796,33 +950,33 @@ $(eval $(call BuildPlugin,expr,Expression Evaluation,vanilla,,,,))
 $(eval $(call BuildPlugin,fifo,FIFO,vanilla,,,,))
 $(eval $(call BuildPlugin,file-string,Streaming Multiple Sound Files Sequentially,vanilla,,,,@OBSOLETE)) # merged into dptools
 $(eval $(call BuildPlugin,flite,Festival TTS,vanilla,,,,@(!(armeb||avr32)||BROKEN)))
-$(eval $(call BuildPlugin,fsk,Bell-202 1200-baud FSK decoder,vanilla,,,,))
+$(eval $(call BuildPlugin,fsk,Bell-202 1200-Baud FSK Decoder,vanilla,,,,))
 $(eval $(call BuildPlugin,fsv,Video Player / Recorder,vanilla,,,,))
 $(eval $(call BuildPlugin,g723-1,G.723.1 Codec,vanilla,,,,))
 $(eval $(call BuildPlugin,g729,G.729 Codec,vanilla,,,,))
-$(eval $(call BuildPlugin,gsmopen,GSM Modem compatible Endpoint,,,,,+alsa-lib @BROKEN)) # needs gsmlib
+$(eval $(call BuildPlugin,gsmopen,GSM Modem compatible Endpoint,mod,,,,+alsa-lib @BROKEN)) # needs gsmlib
 $(eval $(call BuildPlugin,h26x,H26X Linear Codec,vanilla,,,,))
-$(eval $(call BuildPlugin,h323,H323 Endpoint,,,,,@BROKEN)) # Req. H323Plus v1.24.x or newer
+$(eval $(call BuildPlugin,h323,H323 Endpoint,mod,,,,@BROKEN)) # Req. H323Plus v1.24.x or newer
 $(eval $(call BuildPlugin,hash,API For Manipulating A Hash Table,vanilla,,,,))
 $(eval $(call BuildPlugin,html5,HTML5 Endpoint Module,vanilla,,,,))
-$(eval $(call BuildPlugin,httapi,HT Telephony API And HTTP Caching,,,,,))
-$(eval $(call BuildPlugin,http-cache,HTTP GET With Caching,,,,,+libcurl))
+$(eval $(call BuildPlugin,httapi,HT Telephony API and HTTP Caching,mod,,,,)) # ~/conf
+$(eval $(call BuildPlugin,http-cache,HTTP GET With Caching,mod,,,,+libcurl)) # ~/conf
 $(eval $(call BuildPlugin,ilbc,ILBC Codec,vanilla,,,,))
 $(eval $(call BuildPlugin,isac,iSAC Codec,vanilla,,,,))
 $(eval $(call BuildPlugin,java,Java Language Interface,vanilla,,,,@BROKEN)) # needs java
-$(eval $(call BuildPlugin,json-cdr,JSon-CDR Interface,,,,,+libcurl))
+$(eval $(call BuildPlugin,json-cdr,JSon-CDR Interface,mod,,,,+libcurl))
 $(eval $(call BuildPlugin,lcr,Least Cost Routing,vanilla,,,,))
 $(eval $(call BuildPlugin,local-stream,Multi-Channel On Same Stream,vanilla,,,,))
 $(eval $(call BuildPlugin,logfile,File Logger,vanilla,,,,))
 $(eval $(call BuildPlugin,loopback,Loopback to Dialplan Endpoint,vanilla,,,,))
 $(eval $(call BuildPlugin,lua,LUA Language Interface,vanilla,,,,))
 $(eval $(call BuildPlugin,managed,Media Switching Software Library,vanilla,,,,+glib2 @BROKEN)) # needs Mono
-$(eval $(call BuildPlugin,mp4,MP4 File Format support for video apps,vanilla,,,,@BROKEN)) # needs libmp4v2
+$(eval $(call BuildPlugin,mp4,MP4 File Format Support For Video,vanilla,,,,@BROKEN)) # needs libmp4v2
 $(eval $(call BuildPlugin,mp4v,MP4 CoDec Support For Video,vanilla,,,,))
 $(eval $(call BuildPlugin,native-file,WAV Format Sound Player,vanilla,,,,))
 $(eval $(call BuildPlugin,nibblebill,Credit / Debit Billing,vanilla,,,,))
 $(eval $(call BuildPlugin,oreka,Media Recording with Oreka,vanilla,,,,))
-$(eval $(call BuildPlugin,openzap,Zaptel (Superseded by FreeTDM),vanilla,ozmod,,,+$(PKG_NAME)-libopenzap +libpcap))
+$(eval $(call BuildPlugin,openzap,Zaptel (Superseded by FreeTDM),libs,ozmod,,,+$(PKG_NAME)-libopenzap +libpcap))
 $(eval $(call BuildPlugin,opus,Opus CoDec,vanilla,,,,))
 $(eval $(call BuildPlugin,portaudio,Portaudio To Sound Card Interface,vanilla,,,,+alsa-lib))
 $(eval $(call BuildPlugin,portaudio-stream,Portaudio Streaming Interface,vanilla,,,,+alsa-lib))
@@ -831,7 +985,7 @@ $(eval $(call BuildPlugin,radius-cdr,Radius-CDR interface,vanilla,,,,+freeradius
 $(eval $(call BuildPlugin,redis,Redis Limited Backend,vanilla,,,,))
 $(eval $(call BuildPlugin,rss,RRS Feeds via TTS,vanilla,,,,))
 $(eval $(call BuildPlugin,rtmp,RTMP Protocol Handler,vanilla,,,,))
-$(eval $(call BuildPlugin,sangoma-codec,codec sangoma-codec,vanilla,,,,@BROKEN)) # Req. Sangoma CoDec source
+$(eval $(call BuildPlugin,sangoma-codec,Sangoma Codec,vanilla,,,,@BROKEN)) # Req. Sangoma CoDec source
 $(eval $(call BuildPlugin,say-de,German Say,vanilla,,,,))
 $(eval $(call BuildPlugin,say-en,English Say,vanilla,,,,))
 $(eval $(call BuildPlugin,say-es,Spanish Say,vanilla,,,,))
@@ -849,29 +1003,30 @@ $(eval $(call BuildPlugin,silk,Skype(TM) SILK Codec Module,vanilla,,,,))
 $(eval $(call BuildPlugin,siren,G.722.1 Codec,vanilla,,,,))
 $(eval $(call BuildPlugin,skel,Template For New Module,vanilla,,,,))
 $(eval $(call BuildPlugin,skinny,Skinny Call Control Protocol (SCCP),vanilla,,,,))
-$(eval $(call BuildPlugin,skypopen,Skype Compatible Endpoint,,,,,@FEATURE_drawing-backend_libX11))
+$(eval $(call BuildPlugin,skypopen,Skype Compatible Endpoint,mod,,,,@FEATURE_drawing-backend_libX11))
 $(eval $(call BuildPlugin,sms,SMS,vanilla,,,,))
 $(eval $(call BuildPlugin,snapshot,Record Audio Snapshot to File,vanilla,,,,))
 $(eval $(call BuildPlugin,sndfile,Multi-Format Sound File,vanilla,,,,))
 $(eval $(call BuildPlugin,snipe-hunt,Snipe Hunt (Simple Example Module),vanilla,,,,))
 $(eval $(call BuildPlugin,snmp,SNMP AgentX Subagent,vanilla,,,,+libnetsnmp))
 $(eval $(call BuildPlugin,snom,SNOM specific features,vanilla,,,,))
-$(eval $(call BuildPlugin,sofia,SOFIA SIP,,,,,))
+$(eval $(call BuildPlugin,sofia,SOFIA SIP,mod,,,,)) # ~/conf
 $(eval $(call BuildPlugin,sonar,Sonar Ping Timer,vanilla,,,,))
-$(eval $(call BuildPlugin,spandsp,Span DSP,,,,,+libjpeg))
-$(eval $(call BuildPlugin,speex,Speex codec,,,,,))
+$(eval $(call BuildPlugin,spandsp,Span DSP,mod,,,,+libjpeg)) # ~/conf
+$(eval $(call BuildPlugin,speex,Speex codec,mod,,,,))
 $(eval $(call BuildPlugin,spidermonkey,JavaScript,vanilla,,,,@BROKEN)) # fails in js
 $(eval $(call BuildPlugin,spidermonkey-core_db,JavaScript DB,vanilla,,,,@BROKEN))
 $(eval $(call BuildPlugin,spidermonkey-curl,JavaScript Curl,vanilla,,,,@BROKEN))
 $(eval $(call BuildPlugin,spidermonkey-odbc,JavaScript ODBC,vanilla,,,,@BROKEN))
-$(eval $(call BuildPlugin,spidermonkey-socket,JavaScript socket,vanilla,,,,@BROKEN))
-$(eval $(call BuildPlugin,spidermonkey-teletone,JavaScript teletone,vanilla,,,,@BROKEN))
+$(eval $(call BuildPlugin,spidermonkey-socket,JavaScript Socket,vanilla,,,,@BROKEN))
+$(eval $(call BuildPlugin,spidermonkey-teletone,JavaScript Teletone,vanilla,,,,@BROKEN))
 $(eval $(call BuildPlugin,spy,User Spy,vanilla,,,,))
 $(eval $(call BuildPlugin,stress,Voice Stress Detection,vanilla,,,,))
 $(eval $(call BuildPlugin,syslog,SysLog logger,vanilla,,,,))
+$(eval $(call BuildPlugin,timerfd,Linux Kernel timerfd API,vanilla,,,,))
 $(eval $(call BuildPlugin,tone-stream,Tone Generation Stream,vanilla,,,,))
 $(eval $(call BuildPlugin,tts-commandline,ASR TTS Command Interface,vanilla,,,,))
-$(eval $(call BuildPlugin,unimrcp,UniMRCP (MRCP client),vanilla,,,,@BROKEN))
+$(eval $(call BuildPlugin,unimrcp,UniMRCP (MRCP Client),vanilla,,,,@BROKEN))
 $(eval $(call BuildPlugin,valet-parking,Valet Parking Application,vanilla,,,,))
 $(eval $(call BuildPlugin,vmd,VoiceMail Beep Detection,vanilla,,,,))
 $(eval $(call BuildPlugin,voicemail,VoiceMail,vanilla,,,,))
