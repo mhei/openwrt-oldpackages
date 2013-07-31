@@ -1,0 +1,11 @@
+--- a/driver/serial_posix.c
++++ b/driver/serial_posix.c
+@@ -65,7 +65,7 @@
+ #include "repository.h"
+ #include "device.h"
+ #include "driver_layer.h"
+-#include <aio.h>
++//#include <aio.h>
+ #include "serial_posix.h"
+ #include "copyright.h"
+ #include "version.h"

@@ -1,0 +1,4 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1 @@
++SUBDIRS( projects/generic-cmake )
