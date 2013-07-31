@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=cmus
 PKG_VERSION:=2.5.0
-PKG_RELEASE:=1
+PKG_RELEASE:=4
 
 PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=@SF/cmus
@@ -28,11 +28,19 @@ define Package/cmus
   DEPENDS:= \
 	+libpthread +librt +libncursesw $(ICONV_DEPENDS) \
 	+AUDIO_SUPPORT:alsa-lib \
-	+BUILD_PATENTED:libmad +libvorbisidec +libflac
+	+BUILD_PATENTED:libmad +libvorbisidec +libflac \
+	$(if $(CONFIG_CMUS_WITH_PULSE),+pulseaudio-daemon,) 
+
   TITLE:=C* Music Player
   MAINTAINER:=Peter Wagner <tripolar@gmx.at>
   URL:=http://cmus.sourceforge.net/
+  MENU:=1
 endef
+
+define Package/cmus/config
+  source "$(SOURCE)/Config.in"
+endef
+
 
 define Package/cmus/description
 	C* Music Player is a modular and very configurable ncurses-based
@@ -64,11 +72,11 @@ define Build/Configure
 		CONFIG_AAC=n \
 		CONFIG_FFMPEG=n \
 		CONFIG_ROAR=n \
-		CONFIG_PULSE=n \
+		CONFIG_PULSE=$(if $(CONFIG_CMUS_WITH_PULSE),a,n) \
 		CONFIG_ALSA=$(if $(CONFIG_AUDIO_SUPPORT),a,n) \
 		CONFIG_AO=n \
 		CONFIG_ARTS=n \
-		CONFIG_OSS=y \
+		CONFIG_OSS=$(if $(CONFIG_CMUS_WITH_OSS),a,n) \
 		CONFIG_SUN=n \
 		CONFIG_WAVEOUT=n \
 		DEBUG=0 \
