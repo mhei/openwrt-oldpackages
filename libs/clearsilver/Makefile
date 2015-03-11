@@ -31,7 +31,7 @@ define Package/clearsilver
   CATEGORY:=Libraries
   TITLE:=ClearSilver template system
   URL:=http://www.clearsilver.net/
-  MAINTAINER:=Raphaël HUCK <rhk@cksum.org>
+  MAINTAINER:=RaphaÃ«l HUCK <rhk@cksum.org>
   DEPENDS:=+CLEARSILVER_ENABLE_COMPRESSION:zlib +CLEARSILVER_ENABLE_GETTEXT:libintl
 endef
 
@@ -88,7 +88,8 @@ TARGET_CFLAGS+=$(FPIC)
 MAKE_FLAGS+= \
 	$(TARGET_CONFIGURE_OPTS) \
 	AR="$(AR) cr" \
-	LD="$(TARGET_CC) -o"
+	LD="$(TARGET_CC) -o" \
+	OSTYPE=Linux
 
 define Build/InstallDev
 	$(CP) $(PKG_INSTALL_DIR)/* $(1)/

@@ -1,4 +1,4 @@
-# 
+#
 # Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libnids
-PKG_VERSION:=1.18
+PKG_VERSION:=1.24
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=http://www.packetfactory.net/projects/libnids/dist/
-PKG_MD5SUM:=9ee6dcdfac97bae6fe611aa27d2594a5
+PKG_SOURCE_URL:=@SF/libnids
+PKG_MD5SUM:=72d37c79c85615ffe158aa524d649610
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -22,11 +22,11 @@ define Package/libnids
   CATEGORY:=Libraries
   DEPENDS:=+libnet0
   TITLE:=A network intrusion detection library
-  URL:=http://www.packetfactory.net/projects/libnids/
+  URL:=http://libnids.sourceforge.net/
 endef
 
 define Package/libnids/description
-	An implementation of an E-component of Network Intrusion Detection 
+	An implementation of an E-component of Network Intrusion Detection
 	System.
 endef
 
@@ -36,6 +36,7 @@ define Build/Configure
 		--enable-static \
 		--with-libnet="$(STAGING_DIR)/usr/lib/libnet-1.0.x" \
 		--with-libpcap="$(STAGING_DIR)/usr" \
+		--disable-libglib \
 		, \
 		CFLAGS="$$$$CFLAGS $$$$CPPFLAGS" \
 	)

@@ -1,5 +1,5 @@
-# 
-# Copyright (C) 2006-2010 OpenWrt.org
+#
+# Copyright (C) 2006-2014 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=pptpd
-PKG_VERSION:=1.3.4
-PKG_RELEASE:=2
+PKG_VERSION:=1.4.0
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/poptop
-PKG_MD5SUM:=b38df9c431041922c997c1148bedf591
+PKG_MD5SUM:=36f9f45c6ffa92bc3b6e24ae2d053505
 
 PKG_INSTALL:=1
 
@@ -22,7 +22,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/pptpd
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=+kmod-ppp +kmod-gre +ppp
+  DEPENDS:=+kmod-ppp +kmod-gre +kmod-mppe +ppp
   TITLE:=PopTop pptp server
   URL:=http://www.poptop.org/
   SUBMENU:=VPN
@@ -41,6 +41,7 @@ MAKE_FLAGS += \
 define Package/pptpd/conffiles
 /etc/pptpd.conf
 /etc/ppp/options.pptpd
+/etc/config/pptpd
 endef
 
 define Package/pptpd/install
@@ -58,6 +59,8 @@ define Package/pptpd/install
 	$(INSTALL_BIN) ./files/pptpd.init $(1)/etc/init.d/pptpd
 	$(INSTALL_DIR) $(1)/etc/ppp
 	$(INSTALL_DATA) ./files/options.pptpd $(1)/etc/ppp/
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DATA) ./files/pptpd.config $(1)/etc/config/pptpd
 endef
 
 $(eval $(call BuildPackage,pptpd))
